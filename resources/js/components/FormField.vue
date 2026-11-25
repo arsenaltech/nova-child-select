@@ -1,6 +1,6 @@
 <template>
     <default-field :field="field" :errors="errors">
-        <template slot="field">
+        <template #field>
             <select
                 :id="field.attribute"
                 v-model="value"
@@ -60,9 +60,28 @@ export default {
 
     computed: {
         watchedComponents() {
-            return this.$parent.$children.filter(component => {
-                return this.isWatchingComponent(component);
-            });
+            const components = [];
+            const walk = (vnode) => {
+                if (!vnode) return;
+                if (vnode.component) {
+                    const proxy = vnode.component.proxy;
+                    if (proxy && this.isWatchingComponent(proxy)) {
+                        components.push(proxy);
+                    }
+                    walk(vnode.component.subTree);
+                }
+                if (Array.isArray(vnode.children)) {
+                    for (const child of vnode.children) {
+                        if (child && typeof child === 'object') {
+                            walk(child);
+                        }
+                    }
+                }
+            };
+            if (this.$ && this.$.parent && this.$.parent.subTree) {
+                walk(this.$.parent.subTree);
+            }
+            return components;
         },
 
         disabled() {
